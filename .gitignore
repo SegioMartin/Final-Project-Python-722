@@ -1,0 +1,19 @@
+# Course materials (not shared in the repo)
+*.pdf
+
+# Python environment and caches
+.venv/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated data: recreated by notebooks/01_data_prep.ipynb
+data/processed/*
+!data/processed/.gitkeep
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
