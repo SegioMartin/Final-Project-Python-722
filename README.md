@@ -94,8 +94,8 @@ Public holidays come from the Python package `holidays` (Ontario), so no file is
 2. **Event exposure.** Mark each TTC incident and each day as event or non-event, using the event date
    and a time window from 2 h before the start to 2 h after the end (end unknown → start + 3 h).
    The window is set in `01_data_prep` and varied in `04_verification`.
-3. **Baseline.** Compare event days with comparable non-event days (same weekday and month), not with
-   all days, because delays depend strongly on weekday and season.
+3. **Baseline.** Compare each event hour with hours of the same weekday type and hour of day outside any
+   event window, not with all hours, because incidents depend strongly on weekday, hour and season.
 4. **Weather control.** Weather is the main alternative explanation:
    - snow and heavy rain produce many incidents on their own (for example, the day with the most
      `MFDV` "on diversion" incidents, 2026-09-02, had 43 mm of rain, and the second, 2026-01-15,
@@ -107,10 +107,11 @@ Public holidays come from the Python package `holidays` (Ontario), so no file is
    We therefore join daily snowfall, precipitation, temperature and snow on ground to every day and
    (a) include them as controls in a regression together with weekday, month and holiday, and
    (b) check that the event effect holds when comparing only days with similar weather (e.g. dry days only).
-5. **Location.** Whether a bus route or stop is near a venue is decided manually during the analysis
-   (the `Station` field is free text, e.g. "WARDEN STATION", "STEELES AND NORFINCH").
+5. **Location.** A route is "near a venue" if one of its stops is within 1 km of Rogers Centre, Scotiabank Arena
+   or BMO Field. Stop coordinates come from the TTC GTFS feed (`scripts/clean_gtfs.py` cleans it into
+   `data/processed/gtfs_*.csv`; `01_data_prep` adds the distances). The `Station` field is free text and is not used.
 6. **Verification.** Placebo test (fake event dates should show no effect), alternative time windows,
-   excluding winter months.
+   other model choices and dropping groups of hours (21 checks in `04_verification`).
 
 ## 5. Notebooks
 
@@ -119,9 +120,21 @@ Run them in order. Notebooks 02-04 read only files created by 01.
 | Notebook | Purpose | Input → output |
 |---|---|---|
 | `notebooks/01_data_prep.ipynb` | Load and clean TTC data (types, date-time, duplicates, zero delays, outliers, cause codes, route numbers); build the event calendar (home games only, UTC → Toronto time, manual events); add weather and holidays; merge everything | `data/raw/*` → `data/processed/`: `incidents.csv` (1 row = incident), `events.csv` (event-day), `daily.csv` (day), `hourly.csv` (hour) |
-| `notebooks/02_eda.ipynb` | How delays behave in general: by hour, weekday, month, route, cause; effect of weather; overview of the event calendar. Gives the baseline for comparison | `data/processed/*` → charts |
-| `notebooks/03_event_effect.ipynb` | Main question: event vs comparable non-event days and hours, near vs far routes, regression with weather/weekday/month/holiday controls, case studies (World Cup 2026, World Series 2025, CNE, Pride) | `data/processed/*` → results, charts |
-| `notebooks/04_verification.ipynb` | Robustness checks (placebo dates, other time windows, without winter), conclusions and limitations | `data/processed/*` → results |
+| `notebooks/02_eda.ipynb` | How incidents behave in general, step by step: volume, delay size, hour of day, causes (and the April 2026 coding change), routes and places, weather and holidays, the event calendar, and what it means for the analysis. Each chart has a plain-language explanation | `data/processed/*` → charts |
+| `notebooks/03_event_effect.ipynb` | Main question. Modelling table; matched comparison (event hours vs the usual for the same weekday and hour); Poisson regression with weekday, hour, month, weather, holiday and coding-period controls; near-venue test; diversions, long delays and delay minutes; cause groups; conclusions | `data/processed/*` → results, charts |
+| `notebooks/04_verification.ipynb` | 21 robustness checks (event windows, model choices, dropped hours) and a fake-events test, with a verdict | `data/processed/*` → results |
+
+**Before `01_data_prep`:** the raw TTC GTFS feed is **not in the repository** (326 MB, over GitHub's file limit).
+Download the Toronto Open Data dataset "Merged GTFS - TTC Routes and Schedules" (feed version S1000544, valid 2026-11-01 to 2026-12-19)
+and unzip it into `data/raw/Merged GTFS - TTC Routes and Schedules/`. Then run `uv run python scripts/clean_gtfs.py` once. It reduces the feed to the small `gtfs_*.csv` tables that `01_data_prep` reads.
+
+## 5a. Main findings
+
+- Major events did **not** raise bus incidents: baseball 1.03, hockey 0.96 and other events 0.95 (rate ratios, 1.0 = no difference), all within chance.
+- **Basketball hours at Scotiabank Arena have about 9% fewer incidents** (0.91) and about 16% less delay time (0.84). This holds in all 21 checks and against fake events.
+- A small rise for Toronto FC (1.09) is not reliable: it disappears when each weekday is matched separately.
+- Routes near a venue show no sports effect. During parades, the World Cup and festivals there is a possible rise (1.22) that rests on 12 events and is only a lead.
+- Weather and holidays move incidents much more than events do: heavy snow +81% on the day, a holiday -32%.
 
 ## 6. How to reproduce
 

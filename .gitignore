@@ -9,6 +9,10 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
+# Raw TTC GTFS feed: 326 MB (stop_times.txt alone is 285 MB, over GitHub's 100 MB file limit).
+# Download it again (see README) and run scripts/clean_gtfs.py
+data/raw/Merged GTFS - TTC Routes and Schedules/
+
 # Generated data: recreated by notebooks/01_data_prep.ipynb
 data/processed/*
 !data/processed/.gitkeep
